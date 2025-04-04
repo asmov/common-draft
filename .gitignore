@@ -1,0 +1,9 @@
+/target
+/Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+
+# Asmov
+/.local

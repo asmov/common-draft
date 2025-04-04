@@ -1,13 +1,6 @@
-Asmov Common
+Asmov Common Utility
 ================================================================================
-Common libraries and tools for Asmov projects
-
-
-Packages
---------------------------------------------------------------------------------
-### Libraries
-- [Testing](./packages/testing)
-- [Traitenum](./packages/traitenum)
+*Utility libraries for Asmov Common*
 
 
 Repository
@@ -21,7 +14,7 @@ If an issue does not exist, create one and tell us how to reproduce the bug.
 
 License (AGPL3)
 --------------------------------------------------------------------------------
-Asmov Common: Common libraries and tools for Asmov projects  
+Asmov Common Utility: Utility libraries for Asmov Common  
 Copyright (C) 2024-2025 Asmov LLC  
 
 This program is free software: you can redistribute it and/or modify

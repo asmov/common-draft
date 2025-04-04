@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = [
+    "packages/dataset",
+    "packages/dataset-enum",
+    "packages/dataset-enum-derive",
+    "packages/dataset-wasm",
+    "packages/linux",
+    "packages/net-server",
+    "packages/util",
+]
+
+[[workspace.metadata.traitenum.library]]
+name = "dataset-fieldenum"
+lib-dir = "lib"
+derive-dir = "derive"
