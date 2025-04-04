@@ -1,13 +1,8 @@
-Asmov Common
+DRAFT: Asmov Common
 ================================================================================
-Common libraries and tools for Asmov projects
+*Work-in-progress additions to Asmov Common*
 
-
-Packages
---------------------------------------------------------------------------------
-### Libraries
-- [Testing](./packages/testing)
-- [Traitenum](./packages/traitenum)
+Please, for your own safety, do not use in production. Or you will die. Maybe.
 
 
 Repository
@@ -21,7 +16,7 @@ If an issue does not exist, create one and tell us how to reproduce the bug.
 
 License (AGPL3)
 --------------------------------------------------------------------------------
-Asmov Common: Common libraries and tools for Asmov projects  
+Asmov Common: Work-in-progress additions to Asmov Common  
 Copyright (C) 2024-2025 Asmov LLC  
 
 This program is free software: you can redistribute it and/or modify
@@ -36,4 +31,4 @@ GNU Affero General Public License for more details.
 
 You should have received a [copy](./LICENSE-AGPL-3.txt) of the
 GNU Affero General Public License along with this program.
-If not, see [https://www.gnu.org/licenses/].
+If not, see https://www.gnu.org/licenses/.

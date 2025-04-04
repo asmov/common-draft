@@ -4,10 +4,11 @@ version = "0.1.0"
 description = "Linux platform library for Asmov Common"
 authors = ["Asmov LLC <development.pub@asmov.software>"]
 repository = "https://github.com/asmov/common"
+homepage = "https://asmov.software"
 license = "AGPL-3.0-or-later"
 keywords = ["linux", "asmov", "common"]
 categories = []
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 home = "0"

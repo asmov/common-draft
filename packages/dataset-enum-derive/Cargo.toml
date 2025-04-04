@@ -4,19 +4,20 @@ version = "0.1.0"
 description = "Enum trait derive macros for Asmov Common Dataset"
 authors = ["Asmov LLC <development.pub@asmov.software>"]
 repository = "https://github.com/asmov/common"
+homepage = "https://asmov.software"
 license = "AGPL-3.0-or-later"
 keywords = ["model", "db", "sql"]
 categories = []
-edition = "2021"
+edition = "2024"
 
 [lib]
 proc-macro = true
 
 [dependencies]
-asmov-common-dataset-enum = { path = "../dataset-enum" }
-proc-macro2 = "1.0.89"
-asmov-common-traitenum = { path = "../../packages/traitenum", default-features = false }
-asmov-common-traitenum-parse = { path = "../../packages/traitenum-parse" }
+asmov-common-dataset-enum = { version="0", path = "../dataset-enum" }
+proc-macro2 = "1"
+asmov-common-traitenum = { version="1", default-features = false }
+asmov-common-traitenum-parse = { version="1" }
 
 [package.metadata.traitenum]
 purpose = "derive"

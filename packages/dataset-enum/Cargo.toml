@@ -4,16 +4,17 @@ version = "0.1.0"
 description = "Enums traits for Asmov Common Dataset"
 authors = ["Asmov LLC <development.pub@asmov.software>"]
 repository = "https://github.com/asmov/common"
+homepage = "https://asmov.software"
 license = "AGPL-3.0-or-later"
 keywords = ["model", "db", "sql"]
 categories = []
 edition = "2021"
 
 [dependencies.asmov-common-traitenum-macro]
-path = "../../packages/traitenum-macro"
+version="1"
 
 [dependencies.asmov-common-traitenum]
-path = "../../packages/traitenum"
+version="1"
 
 [package.metadata.traitenum]
 purpose = "lib"
