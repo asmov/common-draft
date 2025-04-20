@@ -5,6 +5,8 @@ members = [
     "packages/dataset-enum",
     "packages/dataset-enum-derive",
     "packages/dataset-wasm",
+    "packages/hardpath",
+    "packages/hardpath-macro",
     "packages/linux",
     "packages/net-server",
     "packages/util",

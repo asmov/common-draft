@@ -1,0 +1,11 @@
+[package]
+name = "asmov-common-hardpath-macro"
+version = "0.1.0"
+description = "Macro exports for Asmov Common Hardpath"
+authors = ["Asmov LLC <development.pub@asmov.software>"]
+repository = "https://github.com/asmov/common"
+homepage = "https://asmov.software"
+license = "AGPL-3.0-or-later"
+keywords = ["linux", "asmov", "common"]
+categories = []
+edition = "2024"
