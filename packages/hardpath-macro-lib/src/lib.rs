@@ -11,7 +11,7 @@ const IDENT_DOC: &'static str = "doc";
 const COMMENT_BLOCK_START: &'static str = "```hardpath";
 const COMMENT_BLOCK_END: &'static str = "```";
 
-pub fn parse_hardpath_macro(item: proc_macro2::TokenStream) -> Result<proc_macro2::TokenStream, Error> {
+pub fn parse_hardpath_macro(item: proc_macro2::TokenStream) -> syn::Result<proc_macro2::TokenStream> {
     let item: HardpathItem = syn::parse2(item)?;
     let struct_ident = item.syn_struct.ident;
     let struct_visibility = item.syn_struct.vis;
