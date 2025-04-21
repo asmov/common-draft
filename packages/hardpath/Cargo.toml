@@ -9,3 +9,6 @@ license = "AGPL-3.0-or-later"
 keywords = ["linux", "asmov", "common"]
 categories = []
 edition = "2024"
+
+[dependencies]
+asmov-common-hardpath-macro = { version = "0.1.0", path = "../hardpath-macro" }

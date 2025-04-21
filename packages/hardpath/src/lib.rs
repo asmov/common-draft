@@ -1,7 +1,8 @@
 use std::{ops::Deref, path::PathBuf};
 
 pub type HardpathTreeNode = HardpathNode;
-pub struct HardpathTree(std::sync::LazyLock<HardpathTreeNode>);
+
+/*pub struct HardpathTree(std::sync::LazyLock<HardpathTreeNode>);
 
 impl HardpathTree {
     pub const fn new() -> Self {
@@ -15,42 +16,17 @@ impl Deref for HardpathTree {
     fn deref(&self) -> &Self::Target {
         &self.0
     }
-}
+}*/
 
 pub struct HardpathNode {
     path_str: &'static str,
     name: &'static str,
     description: &'static str,
     parent_path_str: Option<&'static str>,
-    children: Vec<HardpathNode>,
-}
-
-impl HardpathTreeNode where Self: 'static {
-    pub fn new() -> Self {
-        let name = ".";
-
-        let children = vec![HardpathNode::new_node(Some(&name))];
-
-        HardpathNode {
-            path_str: &name,
-            name: "",
-            description: "",
-            parent_path_str: None,
-            children,
-        }
-    }
+    children: &'static [HardpathNode],
 }
 
 impl HardpathNode where Self: 'static {
-    const fn new_node(parent_path_str: Option<&'static str>) -> Self where Self: 'static {
-        HardpathNode {
-            path_str: "",
-            name: "",
-            description: "",
-            parent_path_str,
-            children: vec![],
-        }
-    }
     pub fn path_str(&self) -> &'static str {
         self.path_str
     }
@@ -67,18 +43,18 @@ impl HardpathNode where Self: 'static {
         self.parent_path_str
     }
 
-    pub fn parent(&self, tree: &'static HardpathTreeNode) -> Option<&HardpathNode> {
+    pub fn parent(&self, tree: &'static HardpathTreeNode) -> Option<&'static HardpathNode> {
         match self.parent_path_str {
             Some(parent_path) => tree.find_child(parent_path),
             None => None,
         }
     }
 
-    pub fn find_child(&self, path_str: &str) -> Option<&HardpathNode> {
+    pub fn find_child(&self, path_str: &str) -> Option<&'static HardpathNode> {
         self.children.iter().find(|child| child.path_str == path_str)
     }
 
-    pub fn children(&self) -> &[HardpathNode] {
+    pub fn children(&self) -> &'static [HardpathNode] {
         &self.children
     }
 
@@ -86,7 +62,7 @@ impl HardpathNode where Self: 'static {
             PathBuf::from(self.path_str)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &HardpathNode> {
+    pub fn iter(&self) -> impl Iterator<Item = &'static HardpathNode> {
         self.children.iter()
     }
 
@@ -101,7 +77,28 @@ mod tests {
 
     #[test]
     fn test_tree() {
-        static TREE: HardpathTree = HardpathTree::new();
+        static TREE: HardpathNode = HardpathNode {
+            path_str: ".",
+            name: "Test Tree",
+            description: "This is a test tree",
+            parent_path_str: None,
+            children: &[
+                HardpathNode {
+                    path_str: "child1",
+                    name: "Child 1",
+                    description: "This is child 1",
+                    parent_path_str: Some("."),
+                    children: &[],
+                },
+                HardpathNode {
+                    path_str: "child2",
+                    name: "Child 2",
+                    description: "This is child 2",
+                    parent_path_str: Some("."),
+                    children: &[],
+                },
+            ],
+        };
 
         TREE.iter().for_each(|node| {
             println!("Node: {}", node.name());
