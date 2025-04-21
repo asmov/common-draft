@@ -1,21 +1,21 @@
+use proc_macro2::Span;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
     SynParse(#[from] syn::Error),
-    #[error("```hardpath``` comment block not found")]
-    CommentBlockNotFound(syn::Ident),
-    #[error("```hardpath``` comment block is empty")]
-    CommentBlockEmpty(syn::Ident),
+    #[error("Docblock codefence ```hardpath``` not found or empty")]
+    CodefenceNotFound(Span),
 }
 
-impl Error {
-    pub fn into_syn(self) -> syn::Error {
+impl Into<syn::Error> for Error {
+    fn into(self) -> syn::Error {
         match self {
             Self::SynParse(e) => e,
-            Self::CommentBlockNotFound(ref span)
-            | Self::CommentBlockEmpty(ref span) =>
+            Self::CodefenceNotFound(span) =>
             {
-                syn::Error::new_spanned(span, self.to_string())
+                let msg = self.to_string();
+                syn::Error::new(span, msg)
             }
         }
     }

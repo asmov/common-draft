@@ -1,61 +1,84 @@
-use syn::parse::Parse;
+use syn::{parse::Parse, spanned::Spanned};
 use crate::*;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum ParseState {
+    None,
+    Active,
+    Complete
+}
 
 impl Parse for HardpathItem {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let struct_item = syn::ItemStruct::parse(input)?;
-        let struct_ident = struct_item.ident;
+        let ident_span = struct_item.ident.span();
 
-        // parse the ```hardpath``` comment block
-        // match only doc attributes and push all of the lines into a vec
-
-
-        let mut title; // the extracted first line of the docblock
-        let mut subline; // the extracted second line of the docblock
-        let mut codefence_lines: Option<Vec<(Span, String)>> = None; // the extracted codefence: ```hardpath
-
-        for attr in struct_item.attrs {
+        let doc_lines = struct_item.attrs.iter().filter_map(|attr| {
             if attr.style != syn::AttrStyle::Outer || !attr.path().is_ident(IDENT_DOC) {
-                continue;
-            }
-
-            match attr.meta {
-                syn::Meta::NameValue(syn::MetaNameValue{value: syn::Expr::Lit(syn::ExprLit{lit: syn::Lit::Str(ref litstr),..}),..}) => {
-                    let line = litstr.token().to_string();
-
-                    if let Some(lines) = &mut doc_lines {
-                        if line.trim().starts_with(COMMENT_BLOCK_END) {
-                            lines.push((attr.span(), line));
-                            break;
-                        } else {
-                            lines.push((attr.span(), line));
-                        }
-                    } else {
-                        if line.trim().starts_with(COMMENT_BLOCK_START) {
-                            doc_lines = Some(vec![(attr.span(), line)]);
-                        }
-
-                        continue;
-                    }
+                None
+            } else {
+                match attr.meta {
+                    syn::Meta::NameValue(syn::MetaNameValue{value: syn::Expr::Lit(syn::ExprLit{lit: syn::Lit::Str(ref litstr),..}),..}) => {
+                        Some((attr.span(), litstr.token().to_string()))
+                    },
+                    _ => None,
                 }
-                _ => {}
             }
+        }).collect::<Vec<_>>();
+
+        if doc_lines.is_empty() {
+            return Err(Error::CodefenceNotFound(ident_span).into());
         }
 
-        if doc_lines.is_none() {
-            return Err(Error::CommentBlockNotFound(struct_ident));
+        let mut parsing_codefense = ParseState::None;
+        let codefence_lines = doc_lines.iter().filter_map(|(span, line)| {
+            match parsing_codefense {
+                ParseState::None => {
+                    if line.trim().starts_with(COMMENT_BLOCK_START) {
+                        parsing_codefense = ParseState::Active;
+                    }
+
+                    None
+                },
+                ParseState::Active => {
+                    if line.trim().starts_with(COMMENT_BLOCK_END) {
+                        parsing_codefense = ParseState::Complete;
+                        None
+                    } else {
+                        Some((span.clone(), line.clone()))
+                    }
+                },
+                ParseState::Complete => None
+            }
+        }).collect::<Vec<_>>();
+
+        if codefence_lines.is_empty() {
+            return Err(Error::CodefenceNotFound(ident_span).into());
         }
 
-        let hardpath_comment_lines = doc_lines.expect("should exist");
-        if hardpath_comment_lines.is_empty() {
-            return Err(Error::CommentBlockEmpty(struct_ident));
-        }
-
-        let hardpath_raw_tree = HardpathRawNode::parse_codefence(&struct_ident, hardpath_comment_lines)?;
-
+        let macro_model = HardpathMacroModel::from_docblock(doc_lines, codefence_lines, &ident_span)?;
 
         Ok(HardpathItem {
             syn_struct: struct_item,
+            macro_model,
+        })
+    }
+}
+
+impl HardpathMacroModel {
+    fn from_docblock(docblock_lines: Vec<(Span,String)>, codefence_lines: Vec<(Span,String)>, ident_span: &Span) -> syn::Result<Self> {
+        let children = Vec::new();
+
+        let tree = HardpathRawNode {
+            path_str: ".".to_string(),
+            name: "".to_string(),
+            description: "".to_string(),
+            parent_path_str: None,
+            children,
+        };
+
+        Ok(Self {
+            tree
         })
     }
 }
