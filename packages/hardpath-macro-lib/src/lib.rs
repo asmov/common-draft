@@ -1,11 +1,13 @@
-pub mod error;
+#[macro_use]
+mod error;
 mod model;
 mod parse;
 
 use quote::quote;
 use proc_macro2::Span;
-use model::*;
-use error::*;
+use crate::model::*;
+
+pub use error::msg::*;
 
 const IDENT_DOC: &'static str = "doc";
 const COMMENT_BLOCK_START: &'static str = "```hardpath";

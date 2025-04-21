@@ -1,22 +1,16 @@
-use proc_macro2::Span;
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error(transparent)]
-    SynParse(#[from] syn::Error),
-    #[error("Docblock codefence ```hardpath``` not found or empty")]
-    CodefenceNotFound(Span),
+macro_rules! syn_error {
+    ($span:ident, $msg:ident) => {
+        ::syn::Error::new($span, $msg)
+    };
 }
 
-impl Into<syn::Error> for Error {
-    fn into(self) -> syn::Error {
-        match self {
-            Self::SynParse(e) => e,
-            Self::CodefenceNotFound(span) =>
-            {
-                let msg = self.to_string();
-                syn::Error::new(span, msg)
-            }
-        }
-    }
+macro_rules! syn_err {
+    ($span:ident, $msg:ident) => {
+        Err(syn_error!($span, $msg))
+    };
+}
+
+pub mod msg {
+    pub const E_CODEFENCE_NOT_FOUND: &str = "Docblock codefence ```hardpath``` not found or empty";
 }

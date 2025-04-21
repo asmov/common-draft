@@ -13,47 +13,42 @@ impl Parse for HardpathItem {
         let struct_item = syn::ItemStruct::parse(input)?;
         let ident_span = struct_item.ident.span();
 
-        let doc_lines = struct_item.attrs.iter().filter_map(|attr| {
-            if attr.style != syn::AttrStyle::Outer || !attr.path().is_ident(IDENT_DOC) {
-                None
-            } else {
-                match attr.meta {
-                    syn::Meta::NameValue(syn::MetaNameValue{value: syn::Expr::Lit(syn::ExprLit{lit: syn::Lit::Str(ref litstr),..}),..}) => {
-                        Some((attr.span(), litstr.token().to_string()))
-                    },
-                    _ => None,
+        let mut doc_lines: Vec<(Span, String)> = Vec::new();
+        let mut codefence_lines: Vec<(Span, String)> = Vec::new();
+        let mut parsing_codefence = ParseState::None;
+
+        struct_item.attrs.iter()
+            .filter(|attr| attr.style == syn::AttrStyle::Outer && attr.path().is_ident(IDENT_DOC))
+            .filter_map(|attr| match attr.meta {
+                syn::Meta::NameValue(syn::MetaNameValue{value: syn::Expr::Lit(syn::ExprLit{lit: syn::Lit::Str(ref litstr),..}),..}) => {
+                    Some((attr.span(), litstr.value()))
                 }
-            }
-        }).collect::<Vec<_>>();
-
-        if doc_lines.is_empty() {
-            return Err(Error::CodefenceNotFound(ident_span).into());
-        }
-
-        let mut parsing_codefense = ParseState::None;
-        let codefence_lines = doc_lines.iter().filter_map(|(span, line)| {
-            match parsing_codefense {
-                ParseState::None => {
-                    if line.trim().starts_with(COMMENT_BLOCK_START) {
-                        parsing_codefense = ParseState::Active;
+                _ => None
+            })
+            .for_each(|(span, line)| {
+                match parsing_codefence {
+                    ParseState::None => {
+                        if line.trim().starts_with(COMMENT_BLOCK_START) {
+                            parsing_codefence = ParseState::Active;
+                        } else {
+                            doc_lines.push((span, line))
+                        }
+                    },
+                    ParseState::Active => {
+                        if line.trim().starts_with(COMMENT_BLOCK_END) {
+                            parsing_codefence = ParseState::Complete;
+                        } else {
+                            codefence_lines.push((span, line))
+                        }
+                    },
+                    ParseState::Complete => {
+                        doc_lines.push((span, line))
                     }
-
-                    None
-                },
-                ParseState::Active => {
-                    if line.trim().starts_with(COMMENT_BLOCK_END) {
-                        parsing_codefense = ParseState::Complete;
-                        None
-                    } else {
-                        Some((span.clone(), line.clone()))
-                    }
-                },
-                ParseState::Complete => None
-            }
-        }).collect::<Vec<_>>();
+                }
+            });
 
         if codefence_lines.is_empty() {
-            return Err(Error::CodefenceNotFound(ident_span).into());
+            return syn_err!(ident_span, E_CODEFENCE_NOT_FOUND);
         }
 
         let macro_model = HardpathMacroModel::from_docblock(doc_lines, codefence_lines, &ident_span)?;
