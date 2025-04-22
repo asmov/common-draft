@@ -2,7 +2,7 @@ use quote::ToTokens;
 
 #[derive(Debug, bincode::Encode, bincode::Decode)]
 pub(crate) struct HardpathMacroModel {
-    pub(crate) tree: HardpathRawNode
+    pub(crate) tree: HardpathMacroModelNode
 }
 
 impl HardpathMacroModel {
@@ -25,17 +25,29 @@ pub(crate) struct HardpathItem {
     pub(crate) macro_model: HardpathMacroModel,
 }
 
-#[derive(Debug, bincode::Encode, bincode::Decode)]
-pub(crate) struct HardpathRawNode {
-    pub(crate) path_str: String,
-    pub(crate) name: String,
-    pub(crate) description: String,
-    pub(crate) parent_path_str: Option<String>,
-    pub(crate) children: Vec<HardpathRawNode>,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, bincode::Encode, bincode::Decode)]
+pub(crate) enum PathKind {
+    File,
+    Directory,
 }
 
-impl ToTokens for HardpathRawNode {
-    fn to_tokens(&self, _tokens: &mut proc_macro2::TokenStream) {
-        todo!()
-    }
+#[derive(Debug, bincode::Encode, bincode::Decode)]
+pub(crate) struct HardpathMacroModelNode {
+    pub(crate) parent_path_str: Option<String>,
+    pub(crate) path_str: String,
+    pub(crate) path_kind: PathKind,
+    pub(crate) name: String,
+    pub(crate) subline: String,
+    pub(crate) children: Vec<HardpathMacroModelNode>,
+}
+
+#[derive(Debug)]
+pub(crate) struct HardpathRawNode<'a> {
+    pub(crate) depth: usize,
+    pub(crate) line_index: usize,
+    pub(crate) path_str: &'a str,
+    pub(crate) name: &'a str,
+    pub(crate) subline: &'a str,
+    pub(crate) parent_path_str: Option<&'a str>,
+    pub(crate) children: Vec<HardpathRawNode<'a>>,
 }
