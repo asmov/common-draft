@@ -1,7 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "packages/hardpath",
-    "packages/hardpath-macro",
+    "packages/hardpath-model",
+    "packages/hardpath-parse",
     "packages/hardpath-macro-lib",
+    "packages/hardpath-macro",
+    "packages/hardpath",
 ]

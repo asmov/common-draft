@@ -1,4 +1,4 @@
-## Asmov Common Hardpath 
+Asmov Common Hardpath 
 ================================================================================
 [![Latest Version]][crates.io]
 

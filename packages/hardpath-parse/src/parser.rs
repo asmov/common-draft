@@ -1,7 +1,7 @@
 use std::cell::RefCell;
-
+use proc_macro2::Span;
+use asmov_common_hardpath_model::*;
 use crate::*;
-use super::*;
 
 #[derive(Debug)]
 pub(crate) struct ParserNode<'a> {
@@ -15,22 +15,22 @@ pub(crate) struct ParserNode<'a> {
     pub(crate) children: Vec<ParserNode<'a>>,
 }
 
-pub(crate) struct NodeParser {
+pub struct HardpathParser {
     ident_span: Span,
     lines: Vec<Linespan>,
     indent: usize,
     next_id: RefCell<usize>,
 }
 
-impl NodeParser {
-    pub(crate) fn new(lines: Vec<Linespan>, ident_span: Span) -> syn::Result<Self> {
+impl HardpathParser {
+    pub fn new(lines: Vec<Linespan>, ident_span: Span) -> syn::Result<Self> {
         // first node is '.' and establishes identation
         let dot_line = &lines.get(0)
             .ok_or_else(|| syn_error!(ident_span, E_TREE_ROOT_NOT_FOUND))?
             .0;
         let indent = dot_line.chars().take_while(|c| *c == ' ').count();
 
-        Ok(NodeParser {
+        Ok(HardpathParser {
             ident_span,
             lines,
             indent,
@@ -38,7 +38,7 @@ impl NodeParser {
         })
     }
 
-    pub(crate) fn parse<'a>(self, name: &'a str, subline: &'a str) -> syn::Result<ParserNode<'a>> {
+    pub fn parse<'a>(self, name: &'a str, subline: &'a str) -> syn::Result<ParserNode<'a>> {
         let cursor = Cursor::new(self.indent);
 
         let children = Self::parse_direct_children(cursor)?
@@ -77,54 +77,55 @@ impl NodeParser {
     }
 
     fn parse_codefence_direct_children(&self, cursor: Cursor) -> syn::Result<Vec<Self>> {
-        if self.lines.len() <= cursor.line_index {
-            return Ok(Vec::new());
-        }
-
-        let char_index = indent + depth * EntryKind::DEPTH_INDENT;
+        let mut cursor = cursor.next_depth();
 
         let mut children = Vec::new();
-        for linespan in &lines[line_index..] {
+        while let Some(linespan) = cursor.next_line(self.lines) {
             let entry_kind = EntryKind::try_from(linespan)?;
 
-            let node;
             match entry_kind {
-                EntryKind::Leaf => {
-                    node = Self::parse_codefence_node_head(indent, depth, parent_path_str, entry_kind, line_index, linespan)?;
-                }
-                EntryKind::Branch => {
-                    node = Self::parse_codefence_node_head(indent, depth, parent_path_str, entry_kind, line_index, linespan)?;
-                }
-                EntryKind::Continue => continue,
-                EntryKind::None =>  {
-
-                }
+                EntryKind::Leaf | EntryKind::Branch => {
+                    let node = self.parse_node_head(cursor, entry_kind)?;
+                    children.push(node);
+                },
+                EntryKind::Continue => continue, // todo: check for invalid characters
+                EntryKind::None => break, // todo: check for invalid characters
             }
 
-            children.push(node);
         }
 
         Ok(children)
     }
 
-    fn parse_codefence_node_head(indent: usize, depth: usize, parent_path_str: Option<&str>, entry_kind: EntryKind, line_index: usize, linespan: &(String, Span)) -> syn::Result<Self> {
-        let (line, span) = linespan;
-        let (path_str, name)= entry_kind
+    fn parse_node_head(&self, cursor: &mut Cursor, entry_kind: EntryKind) -> syn::Result<Self> {
+        let (line, span) = cursor.line(self.lines);
+        let (path_name, mut name)= entry_kind
             .slice_after(line)
-            .split_once(Self::NAME_SEPARATOR)
-            .ok_or_else(|| syn_error!(*span, E_ENTRY_HEADER))?;
+            .split_once(Self::NAME_SEPARATOR);
 
-        let path_str = path_str.trim();
-        let name = name.trim();
+        let path_name = path_name
+            .ok_or_else(|| syn_error!(*span, E_ENTRY_HEADER))?
+            .trim();
 
-        Ok(Self {
-            parent_path_str,
-            path_str,
-            name,
-            subline,
-            children: Vec::new(),
-            depth,
-            line_index
+        if let Some(mut name) = name {
+            name = name.trim();
+        }
+
+        let path_kind = if path_name.ends_with('/') {
+            PathKind::Directory
+        } else {
+            PathKind::File
+        };
+
+        Ok(ParserNode {
+            id: self.generate_id(),
+            path_kind: PathKind::Directory,
+            cursor: cursor.clone(),
+            path_name: ".",
+            name: Some(name),
+            subline: Some(subline),
+            parent_id: None,
+            children,
         })
     }
 
@@ -153,23 +154,26 @@ impl Cursor {
         }
     }
 
-    fn next_line(self) -> Self {
-        Cursor {
-            indent: self.indent,
-            depth: self.depth,
-            line_index: self.line_index + 1,
-            char_index: 0
+    fn next_line<'a> (&mut self, lines: &'a Vec<Linespan>) -> Option<&'a Linespan> {
+        let line_index = self.line_index + 1;
+        if lines.len() < line_index {
+            None
+        } else {
+            self.line_index = line_index;
+            self.char_index = self.indent + self.depth * Cursor::DEPTH_INDENT;
+            Some(&lines[line_index - 1])
         }
     }
 
-    fn next_depth(self) -> Self {
+    fn next_depth(self) -> Option<Self> {
         let depth = self.depth + 1;
-        Cursor {
+        let char_index = self.indent + depth * Cursor::DEPTH_INDENT;
+        Some(Cursor {
             indent: self.indent,
             depth,
             line_index: self.line_index,
-            char_index: self.indent + depth * Cursor::DEPTH_INDENT
-        }
+            char_index
+        })
     }
 }
 

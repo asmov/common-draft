@@ -1,11 +1,11 @@
-Asmov Common Hardpath Macro
+Asmov Common Hardpath Model 
 ================================================================================
 [![Latest Version]][crates.io]
 
-[Latest Version]: https://img.shields.io/crates/v/asmov-common-hardpath-macro.svg
-[crates.io]: https://crates.io/crates/asmov-common-hardpath-macro
+[Latest Version]: https://img.shields.io/crates/v/asmov-common-hardpath-model.svg
+[crates.io]: https://crates.io/crates/asmov-common-hardpath-model
 
-*Macro exports for Asmov Common Hardpath*
+*Model library for Asmov Common Hardpath*
 
 Repository
 --------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ If an issue does not exist, create one and tell us how to reproduce the bug.
 
 License (AGPL3)
 --------------------------------------------------------------------------------
-Asmov Common Hardpath Macro: Macro exports for Asmov Common Hardpath  
+Asmov Common Hardpath Model: Model library for Asmov Common Hardpath   
 Copyright (C) 2025 Asmov LLC  
 
 This program is free software: you can redistribute it and/or modify

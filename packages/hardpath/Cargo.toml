@@ -12,3 +12,4 @@ edition = "2024"
 
 [dependencies]
 asmov-common-hardpath-macro = { version = "0.1.0", path = "../hardpath-macro" }
+asmov-common-hardpath-model = { version = "0.1.0", path = "../hardpath-model" }

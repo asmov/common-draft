@@ -23,12 +23,6 @@ pub(crate) struct HardpathItem {
     pub(crate) macro_model: HardpathMacroModel,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, bincode::Encode, bincode::Decode)]
-pub(crate) enum PathKind {
-    File,
-    Directory,
-}
-
 #[derive(Debug, bincode::Encode, bincode::Decode)]
 pub(crate) struct HardpathMacroModelNode {
     pub(crate) path_str: String,
