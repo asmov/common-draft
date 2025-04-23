@@ -23,6 +23,8 @@ pub struct HardpathParser<'p> {
 }
 
 impl<'p> HardpathParser<'p> {
+    const NAME_SEPARATOR: &'static str = " :: ";
+
     pub fn new(lines: &'p Vec<Linespan>, ident_span: Span) -> syn::Result<Self> {
         // first node is '.' and establishes identation
         let dot_line = &lines.get(0)
@@ -41,7 +43,7 @@ impl<'p> HardpathParser<'p> {
     pub fn parse(self, name: &'p str, subline: &'p str) -> syn::Result<ParserNode<'p>> {
         let cursor = Cursor::new(self.indent);
 
-        let children = self.parse_direct_children(cursor)?
+        let children = self.parse_direct_children(cursor, 0)?
             .into_iter()
             .map(|child| self.parse_child(child))
             .collect::<syn::Result<Vec<_>>>()?;
@@ -76,7 +78,7 @@ impl<'p> HardpathParser<'p> {
         Ok(&line[cursor.char_index..])
     }
 
-    fn parse_direct_children(&self, mut cursor: Cursor) -> syn::Result<Vec<ParserNode<'p>>> {
+    fn parse_direct_children(&self, mut cursor: Cursor, parent_id: usize) -> syn::Result<Vec<ParserNode<'p>>> {
         if cursor.next_depth(self.lines).is_none() {
             return Ok(Vec::new());
         };
@@ -87,15 +89,16 @@ impl<'p> HardpathParser<'p> {
 
             match entry_kind {
                 EntryKind::Leaf | EntryKind::Branch => {
+                    let entry_cursor = cursor.clone();
                     let (path_kind, path_name, name, subline) = self.parse_node_head(&mut cursor, &linespan, entry_kind)?;
                     let node = ParserNode {
                         id: self.generate_id(),
-                        path_kind: PathKind::Directory,
-                        cursor: cursor.clone(),
-                        path_name: ".",
-                        name: Some(name),
-                        subline: Some(subline),
-                        parent_id: None,
+                        path_kind,
+                        cursor: entry_cursor,
+                        path_name,
+                        name,
+                        subline,
+                        parent_id: Some(parent_id),
                         children: Vec::new(),
                     };
 
@@ -244,6 +247,5 @@ impl TryFrom<&Linespan> for EntryKind {
 }
 
 impl<'a> ParserNode<'a> {
-    const NAME_SEPARATOR: &'static str = " :: ";
 
 }
