@@ -4,26 +4,26 @@ use asmov_common_hardpath_model::*;
 use crate::*;
 
 #[derive(Debug)]
-pub(crate) struct ParserNode<'a> {
+pub(crate) struct ParserNode<'n> {
     pub(crate) id: usize,
     pub(crate) cursor: Cursor,
     pub(crate) path_kind: PathKind,
-    pub(crate) path_name: &'a str,
-    pub(crate) name: Option<&'a str>,
-    pub(crate) subline: Option<&'a str>,
+    pub(crate) path_name: &'n str,
+    pub(crate) name: Option<&'n str>,
+    pub(crate) subline: Option<&'n str>,
     pub(crate) parent_id: Option<usize>,
-    pub(crate) children: Vec<ParserNode<'a>>,
+    pub(crate) children: Vec<ParserNode<'n>>,
 }
 
-pub struct HardpathParser {
+pub struct HardpathParser<'p> {
     ident_span: Span,
-    lines: Vec<Linespan>,
+    lines: &'p Vec<Linespan>,
     indent: usize,
     next_id: RefCell<usize>,
 }
 
-impl HardpathParser {
-    pub fn new(lines: Vec<Linespan>, ident_span: Span) -> syn::Result<Self> {
+impl<'p> HardpathParser<'p> {
+    pub fn new(lines: &'p Vec<Linespan>, ident_span: Span) -> syn::Result<Self> {
         // first node is '.' and establishes identation
         let dot_line = &lines.get(0)
             .ok_or_else(|| syn_error!(ident_span, E_TREE_ROOT_NOT_FOUND))?
@@ -38,13 +38,13 @@ impl HardpathParser {
         })
     }
 
-    pub fn parse<'a>(self, name: &'a str, subline: &'a str) -> syn::Result<ParserNode<'a>> {
+    pub fn parse(self, name: &'p str, subline: &'p str) -> syn::Result<ParserNode<'p>> {
         let cursor = Cursor::new(self.indent);
 
-        let children = Self::parse_direct_children(cursor)?
+        let children = self.parse_direct_children(cursor)?
             .into_iter()
-            .map(|child| Self::parse_child(child))
-            .collect::<syn::Result<Vec<Self>>>()?;
+            .map(|child| self.parse_child(child))
+            .collect::<syn::Result<Vec<_>>>()?;
 
         let tree = ParserNode {
             id: 0,
@@ -61,13 +61,13 @@ impl HardpathParser {
     }
 
     pub fn generate_id(&self) -> usize {
-        let id = *self.next_id;
-        self.next_id += 1;
+        let id = *self.next_id.borrow();
+        *self.next_id.borrow_mut() += 1;
         id
     }
 
-    fn seek_from<'a>(line: &'a Linespan, cursor: &Cursor) -> syn::Result<&'a str> {
-        let (span, line) = line;
+    fn seek_from(line: &'p Linespan, cursor: &Cursor) -> syn::Result<&'p str> {
+        let (line, span) = line;
 
         if line.len() < cursor.char_index {
             return syn_err!(*span, E_LINE_INDENT);
@@ -76,8 +76,10 @@ impl HardpathParser {
         Ok(&line[cursor.char_index..])
     }
 
-    fn parse_codefence_direct_children(&self, cursor: Cursor) -> syn::Result<Vec<Self>> {
-        let mut cursor = cursor.next_depth();
+    fn parse_direct_children(&self, mut cursor: Cursor) -> syn::Result<Vec<ParserNode<'p>>> {
+        if cursor.next_depth(self.lines).is_none() {
+            return Ok(Vec::new());
+        };
 
         let mut children = Vec::new();
         while let Some(linespan) = cursor.next_line(self.lines) {
@@ -85,11 +87,21 @@ impl HardpathParser {
 
             match entry_kind {
                 EntryKind::Leaf | EntryKind::Branch => {
-                    let node = self.parse_node_head(cursor, entry_kind)?;
+                    let (path_kind, path_name, name, subline) = self.parse_node_head(&mut cursor, &linespan, entry_kind)?;
+                    let node = ParserNode {
+                        id: self.generate_id(),
+                        path_kind: PathKind::Directory,
+                        cursor: cursor.clone(),
+                        path_name: ".",
+                        name: Some(name),
+                        subline: Some(subline),
+                        parent_id: None,
+                        children: Vec::new(),
+                    };
+
                     children.push(node);
                 },
-                EntryKind::Continue => continue, // todo: check for invalid characters
-                EntryKind::None => break, // todo: check for invalid characters
+                EntryKind::Continue | EntryKind::Indent => continue, // todo: check for invalid characters
             }
 
         }
@@ -97,18 +109,19 @@ impl HardpathParser {
         Ok(children)
     }
 
-    fn parse_node_head(&self, cursor: &mut Cursor, entry_kind: EntryKind) -> syn::Result<Self> {
-        let (line, span) = cursor.line(self.lines);
-        let (path_name, mut name)= entry_kind
-            .slice_after(line)
-            .split_once(Self::NAME_SEPARATOR);
+    fn parse_node_head(&self, cursor: &mut Cursor, linespan: &Linespan, entry_kind: EntryKind) -> syn::Result<(PathKind, &'p str, Option<&'p str>, Option<&'p str>)> {
+        let (line, span) = linespan;
+        let path_name = entry_kind.after_slice(line);
 
-        let path_name = path_name
-            .ok_or_else(|| syn_error!(*span, E_ENTRY_HEADER))?
-            .trim();
+        let (path_name, name) = if let Some((path_name, name)) = path_name.split_once(Self::NAME_SEPARATOR) {
+            ( path_name.trim(), Some(name.trim()) )
+        } else {
+            ( path_name.trim(), None )
+        };
 
-        if let Some(mut name) = name {
-            name = name.trim();
+        //todo: check for invalid characters
+        if path_name.is_empty() {
+            return syn_err!(*span, E_ENTRY_HEADER);
         }
 
         let path_kind = if path_name.ends_with('/') {
@@ -117,24 +130,27 @@ impl HardpathParser {
             PathKind::File
         };
 
-        Ok(ParserNode {
-            id: self.generate_id(),
-            path_kind: PathKind::Directory,
-            cursor: cursor.clone(),
-            path_name: ".",
-            name: Some(name),
-            subline: Some(subline),
-            parent_id: None,
-            children,
-        })
+        let subline = if let Some(linespan) = cursor.peek_next_line(self.lines) {
+            if let Ok(EntryKind::Indent) = EntryKind::try_from(linespan) {
+                let (line, span) = cursor.next_line(self.lines).expect("Should exist");
+                Some(entry_kind.after_slice(line).trim())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        Ok((path_kind, path_name, name, subline))
     }
 
-    fn parse_codefense_child(child: Self, lines: &[Linespan], indent: &str) -> syn::Result<Self> {
+    fn parse_child<'n>(&self, _child: ParserNode) -> syn::Result<ParserNode<'n>> {
         todo!()
     }
 
 }
 
+#[derive(Debug, Clone)]
 struct Cursor {
     indent: usize,
     depth: usize,
@@ -154,48 +170,60 @@ impl Cursor {
         }
     }
 
-    fn next_line<'a> (&mut self, lines: &'a Vec<Linespan>) -> Option<&'a Linespan> {
-        let line_index = self.line_index + 1;
-        if lines.len() < line_index {
-            None
-        } else {
-            self.line_index = line_index;
-            self.char_index = self.indent + self.depth * Cursor::DEPTH_INDENT;
-            Some(&lines[line_index - 1])
-        }
+    fn get_line<'a>(&self, lines: &'a Vec<Linespan>) -> Option<&'a Linespan> {
+        lines.get(self.line_index)
     }
 
-    fn next_depth(self) -> Option<Self> {
+    fn peek_next_line<'a>(&self, lines: &'a Vec<Linespan>) -> Option<&'a Linespan> {
+        lines.get(self.line_index + 1)
+    }
+
+    fn next_line<'a> (&mut self, lines: &'a Vec<Linespan>) -> Option<&'a Linespan> {
+        let line_index = self.line_index + 1;
+        let line = lines.get(line_index)?;
+        self.line_index = line_index;
+        self.char_index = self.indent + self.depth * Cursor::DEPTH_INDENT;
+        Some(line)
+    }
+
+    fn next_depth<'a>(&mut self, lines: &'a Vec<Linespan>) -> Option<&'a str> {
         let depth = self.depth + 1;
         let char_index = self.indent + depth * Cursor::DEPTH_INDENT;
-        Some(Cursor {
-            indent: self.indent,
-            depth,
-            line_index: self.line_index,
-            char_index
-        })
+
+        let (line, _) = if let Some(linespan) = lines.get(self.line_index) {
+            linespan
+        } else {
+            return None;
+        };
+
+        if line.len() <= char_index {
+            return None;
+        } else {
+            self.char_index = char_index;
+            Some(&line[char_index..])
+        }
     }
 }
 
 enum EntryKind {
-    None,
+    Indent,
     Leaf,
     Branch,
     Continue
 }
 
 impl EntryKind {
-    const NONE_PREFIX: &'static str = " ";
+    const INDENT_PREFIX: &'static str = "    ";
     const LEAF_PREFIX: &'static str = "|-- ";
     const BRANCH_PREFIX: &'static str = "|-+ ";
-    const CONTINUE_PREFIX: &'static str = "|";
+    const CONTINUE_PREFIX: &'static str = "|   ";
 
-    fn slice_after<'a,'b>(&'a self, line: &'b str) -> &'b str {
+    fn after_slice<'a,'b>(&'a self, line: &'b str) -> &'b str {
         match self {
-            EntryKind::None => &line[1..],
-            EntryKind::Leaf => &line[5..],
-            EntryKind::Branch => &line[5..],
-            EntryKind::Continue => &line[2..],
+            EntryKind::Indent
+            | EntryKind::Leaf
+            | EntryKind::Branch
+            | EntryKind::Continue => &line[5..],
         }
     }
 }
@@ -209,7 +237,7 @@ impl TryFrom<&Linespan> for EntryKind {
             line if line.starts_with(Self::LEAF_PREFIX) => Ok(EntryKind::Leaf),
             line if line.starts_with(Self::BRANCH_PREFIX) => Ok(EntryKind::Branch),
             line if line.starts_with(Self::CONTINUE_PREFIX) => Ok(EntryKind::Continue),
-            line if line.starts_with(Self::NONE_PREFIX) => Ok(EntryKind::None),
+            line if line.starts_with(Self::INDENT_PREFIX) => Ok(EntryKind::Indent),
             _ => syn_err!(*span, E_ENTRY_KIND)
         }
     }
@@ -218,10 +246,4 @@ impl TryFrom<&Linespan> for EntryKind {
 impl<'a> ParserNode<'a> {
     const NAME_SEPARATOR: &'static str = " :: ";
 
-}
-
-impl ToTokens for HardpathMacroModelNode {
-    fn to_tokens(&self, _tokens: &mut proc_macro2::TokenStream) {
-        todo!()
-    }
 }

@@ -97,7 +97,7 @@ impl Parse for HardpathItem {
             .ok_or_else(|| syn_error!(ident_span, E_TREE_SUBLINE_NOT_FOUND))?
             .0.to_owned();
 
-        let tree = hardpath_parse::HardpathParser::new(codefence_lines, ident_span)?
+        let tree = hardpath_parse::HardpathParser::new(&codefence_lines, ident_span)?
             .parse(&title, &subline)?
             .to_tree()?;
 
