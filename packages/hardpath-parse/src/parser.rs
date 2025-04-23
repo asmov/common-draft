@@ -112,7 +112,7 @@ impl<'p> HardpathParser<'p> {
         Ok(children)
     }
 
-    fn parse_node_head(&self, cursor: &mut Cursor, linespan: &Linespan, entry_kind: EntryKind) -> syn::Result<(PathKind, &'p str, Option<&'p str>, Option<&'p str>)> {
+    fn parse_node_head(&self, cursor: &mut Cursor, linespan: &'p Linespan, entry_kind: EntryKind) -> syn::Result<(PathKind, &'p str, Option<&'p str>, Option<&'p str>)> {
         let (line, span) = linespan;
         let path_name = entry_kind.after_slice(line);
 

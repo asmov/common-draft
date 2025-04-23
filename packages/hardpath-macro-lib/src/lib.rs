@@ -3,7 +3,7 @@ mod model;
 
 use quote::quote;
 use proc_macro2::Span;
-use asmov_common_hardpath_parse as hardpath_parse;
+use asmov_common_hardpath_parse::{self  as hardpath_parse, *};
 use crate::model::*;
 
 pub use error::msg::*;
@@ -45,7 +45,7 @@ enum ParseState {
     Complete
 }
 
-impl Parse for HardpathItem {
+impl syn::parse::Parse for HardpathItem {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let struct_item = syn::ItemStruct::parse(input)?;
         let ident_span = struct_item.ident.span();
