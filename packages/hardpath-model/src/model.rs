@@ -14,8 +14,8 @@ pub struct SoftpathNode {
     pub id: usize,
     pub path_kind: PathKind,
     pub path_name: String,
-    pub name: String,
-    pub description: String,
+    pub name: Option<String>,
+    pub subline: Option<String>,
     pub parent_id: Option<usize>,
     pub children: Vec<SoftpathNode>,
 }
@@ -26,8 +26,8 @@ pub struct HardpathNode {
     id: usize,
     path_kind: PathKind,
     path_name: &'static str,
-    name: &'static str,
-    description: &'static str,
+    name: Option<&'static str>,
+    subline: Option<&'static str>,
     parent_id: Option<usize>,
     children: &'static [HardpathNode],
 }
@@ -41,12 +41,12 @@ impl HardpathNode where Self: 'static {
         self.path_name
     }
 
-    pub fn name(&self) -> &'static str {
+    pub fn name(&self) -> Option<&'static str> {
         self.name
     }
 
-    pub fn description(&self) -> &'static str {
-        self.description
+    pub fn subline(&self) -> Option<&'static str> {
+        self.subline
     }
 
     pub fn parent_id(&self) -> Option<usize> {
@@ -97,16 +97,16 @@ mod tests {
             id: 0,
             path_kind: PathKind::Directory,
             path_name: ".",
-            name: "Test Tree",
-            description: "This is a test tree",
+            name: Some("Test Tree"),
+            subline: Some("This is a test tree"),
             parent_id: None,
             children: &[
                 HardpathNode {
                     id: 1,
                     path_kind: PathKind::Directory,
                     path_name: "child1",
-                    name: "Child 1",
-                    description: "This is child 1",
+                    name: Some("Child 1"),
+                    subline: Some("This is child 1"),
                     parent_id: Some(0),
                     children: &[],
                 },
@@ -114,8 +114,8 @@ mod tests {
                     id: 2,
                     path_name: "child2",
                     path_kind: PathKind::Directory,
-                    name: "Child 2",
-                    description: "This is child 2",
+                    name: Some("Child 2"),
+                    subline: Some("This is child 2"),
                     parent_id: Some(0),
                     children: &[],
                 },
@@ -123,7 +123,7 @@ mod tests {
         };
 
         TREE.iter().for_each(|node| {
-            println!("Node: {}", node.name());
+            println!("Node: {}", node.name().unwrap());
         });
     }
 }

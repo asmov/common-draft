@@ -16,14 +16,25 @@ pub(crate) struct ParserNode<'n> {
 }
 
 impl<'n> ParserNode<'n> {
-    pub fn to_tree(self) -> SoftpathTree {
-        todo!()
+    pub fn into_tree(self) -> SoftpathTree {
+        let children = self.children.into_iter().map(|child| child.to_tree()).collect();
+        let tree = SoftpathTree {
+            id: self.id,
+            path_kind: self.path_kind,
+            path_name: self.path_name.to_owned(),
+            name: self.name.map(|s| s.to_owned()),
+            subline: self.subline.map(|s| s.to_owned()),
+            parent_id: self.parent_id,
+            children,
+        };
+
+        tree
     }
 }
 
 impl<'n> Into<SoftpathTree> for ParserNode<'n> {
     fn into(self) -> SoftpathTree {
-        ParserNode::to_tree(self)
+        ParserNode::into_tree(self)
     }
 }
 
