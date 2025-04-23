@@ -17,7 +17,7 @@ pub(crate) struct ParserNode<'n> {
 
 impl<'n> ParserNode<'n> {
     pub fn into_tree(self) -> SoftpathTree {
-        let children = self.children.into_iter().map(|child| child.to_tree()).collect();
+        let children = self.children.into_iter().map(|child| child.into_tree()).collect();
         let tree = SoftpathTree {
             id: self.id,
             path_kind: self.path_kind,
