@@ -4,6 +4,7 @@ mod model;
 use quote::quote;
 use proc_macro2::Span;
 use asmov_common_hardpath_parse::{self  as hardpath_parse, *};
+use syn::spanned::Spanned;
 use crate::model::*;
 
 pub use error::msg::*;
@@ -26,7 +27,7 @@ pub fn parse_hardpath_macro(item: proc_macro2::TokenStream) -> syn::Result<proc_
         #struct_visibility struct #struct_ident;
 
         impl #struct_ident {
-            const FS: ::asmov_common_hardpath::HardpathNode = #tree_value;
+            const FS: ::asmov_common_hardpath::HardpathTree = #tree_value;
         }
 
         impl #struct_ident {
@@ -98,10 +99,9 @@ impl syn::parse::Parse for HardpathItem {
             .0.to_owned();
 
         let tree = hardpath_parse::HardpathParser::new(&codefence_lines, ident_span)?
-            .parse(&title, &subline)?
-            .to_tree()?;
+            .parse(&title, &subline)?;
 
-        let macro_model = HardpathMacroModel { tree };
+        let macro_model = HardpathMacroModel { tree: HardpathMacroModelTree(tree) };
 
         Ok(HardpathItem {
             syn_struct: struct_item,

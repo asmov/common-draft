@@ -1,6 +1,12 @@
+pub use asmov_common_hardpath_model::*;
+use quote::ToTokens;
+
+#[derive(Debug, bincode::Encode, bincode::Decode)]
+pub(crate) struct HardpathMacroModelTree (pub(crate) SoftpathTree);
+
 #[derive(Debug, bincode::Encode, bincode::Decode)]
 pub(crate) struct HardpathMacroModel {
-    pub(crate) tree: HardpathMacroModelNode
+    pub(crate) tree: HardpathMacroModelTree
 }
 
 impl HardpathMacroModel {
@@ -23,12 +29,8 @@ pub(crate) struct HardpathItem {
     pub(crate) macro_model: HardpathMacroModel,
 }
 
-#[derive(Debug, bincode::Encode, bincode::Decode)]
-pub(crate) struct HardpathMacroModelNode {
-    pub(crate) path_str: String,
-    pub(crate) path_kind: PathKind,
-    pub(crate) name: String,
-    pub(crate) subline: String,
-    pub(crate) parent_path_str: Option<String>,
-    pub(crate) children: Vec<HardpathMacroModelNode>,
+impl ToTokens for HardpathMacroModelTree {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        todo!()
+    }
 }

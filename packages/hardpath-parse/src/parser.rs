@@ -15,6 +15,18 @@ pub(crate) struct ParserNode<'n> {
     pub(crate) children: Vec<ParserNode<'n>>,
 }
 
+impl<'n> ParserNode<'n> {
+    pub fn to_tree(self) -> SoftpathTree {
+        todo!()
+    }
+}
+
+impl<'n> Into<SoftpathTree> for ParserNode<'n> {
+    fn into(self) -> SoftpathTree {
+        ParserNode::to_tree(self)
+    }
+}
+
 pub struct HardpathParser<'p> {
     ident_span: Span,
     lines: &'p Vec<Linespan>,
@@ -40,7 +52,7 @@ impl<'p> HardpathParser<'p> {
         })
     }
 
-    pub fn parse(self, name: &'p str, subline: &'p str) -> syn::Result<ParserNode<'p>> {
+    pub fn parse(self, name: &'p str, subline: &'p str) -> syn::Result<SoftpathTree> {
         let cursor = Cursor::new(self.indent);
 
         let children = self.parse_direct_children(cursor, 0)?
@@ -59,7 +71,7 @@ impl<'p> HardpathParser<'p> {
             children,
         };
 
-        Ok(tree)
+        Ok(tree.into())
     }
 
     pub fn generate_id(&self) -> usize {
@@ -154,7 +166,7 @@ impl<'p> HardpathParser<'p> {
 }
 
 #[derive(Debug, Clone)]
-struct Cursor {
+pub(crate) struct Cursor {
     indent: usize,
     depth: usize,
     line_index: usize,
