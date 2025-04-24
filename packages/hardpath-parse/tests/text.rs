@@ -1,7 +1,12 @@
 #[cfg(test)]
 mod tests {
+    /// Uses the current Asmov Copywriter filesystem standard as input.
+    /// Tests against three different variations of layout:
+    /// - Non-Descriptive: No name or description for entries
+    /// - Descriptive Inline: Names and descriptions are provided inline *with* each entry
+    /// - Descriptive Outline: Names and descriptions are provided after filestructure, with a filepath as the key
     #[test]
-    fn test_copywriter_pkg() {
+    fn test_copywriter_fs() {
         const COPYWRITER_FS_NONDESC: &'static str = r"
             .
             |-- site.toml
@@ -61,6 +66,8 @@ mod tests {
         ";
 
         const COPYWRITER_FS_DESC_OUTLINE: &'static str = r"
+            Asmov Copywriter Filesystem
+            Standard filesystem heirarchy for copywriter projects
             .
             |-- site.toml
             |-- content/
