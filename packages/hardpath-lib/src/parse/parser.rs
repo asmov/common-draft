@@ -60,6 +60,7 @@ impl<'p> HardpathParser<'p> {
         let line = cursor.next_line(&self.lines)
             .ok_or_else(|| Error::InvalidSchema)?;
 
+        // attempt to read optional name and subline
         if line != "." {
             name = Some(line);
 
@@ -68,25 +69,29 @@ impl<'p> HardpathParser<'p> {
 
             if line != "." {
                 subline = Some(line);
+
+                // ensure that the next line is '.'
+                let line = cursor.next_line(&self.lines)
+                    .ok_or_else(|| Error::InvalidSchema)?;
+
+                if line != "." {
+                    return Err(Error::TreeRootNotFound);
+                }
             }
         }
-
-
-
-
 
         let children = self.parse_direct_children(cursor, 0)?
             .into_iter()
             .map(|child| self.parse_child(child))
-            .collect::<syn::Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()?;
 
         let tree = ParserNode {
             id: 0,
             path_kind: PathKind::Directory,
-            cursor: Cursor::new(self.indent),
+            cursor: Cursor::new(),
             path_name: ".",
-            name: Some(name),
-            subline: Some(subline),
+            name: name,
+            subline: subline,
             parent_id: None,
             children,
         };
@@ -125,19 +130,16 @@ impl<'p> HardpathParser<'p> {
             .collect::<Result<Vec<_>>>()
     }
 
-    fn parse_direct_children(&self, mut cursor: Cursor, parent_id: usize) -> syn::Result<Vec<ParserNode<'p>>> {
-        if cursor.next_depth(self.lines).is_none() {
-            return Ok(Vec::new());
-        };
-
+    fn parse_direct_children(&self, mut cursor: Cursor, parent_id: usize) -> Result<Vec<ParserNode<'p>>> {
         let mut children = Vec::new();
-        while let Some(linespan) = cursor.next_line(self.lines) {
+        while let Some(linespan) = cursor.next_line(&self.lines) {
             let entry_kind = EntryKind::try_from(linespan)?;
 
             match entry_kind {
                 EntryKind::Leaf | EntryKind::Branch => {
                     let entry_cursor = cursor.clone();
-                    let (path_kind, path_name, name, subline) = self.parse_node_head(&mut cursor, &linespan, entry_kind)?;
+                    let (path_kind, path_name, name, subline)
+                        = self.parse_node_head(&mut cursor, &linespan, entry_kind)?;
                     let node = ParserNode {
                         id: self.generate_id(),
                         path_kind,
@@ -159,8 +161,7 @@ impl<'p> HardpathParser<'p> {
         Ok(children)
     }
 
-    fn parse_node_head(&self, cursor: &mut Cursor, linespan: &'p Linespan, entry_kind: EntryKind) -> syn::Result<(PathKind, &'p str, Option<&'p str>, Option<&'p str>)> {
-        let (line, span) = linespan;
+    fn parse_node_head(&self, cursor: &mut Cursor, line: &'p str, entry_kind: EntryKind) -> Result<(PathKind, &'p str, Option<&'p str>, Option<&'p str>)> {
         let path_name = entry_kind.after_slice(line);
 
         let (path_name, name) = if let Some((path_name, name)) = path_name.split_once(Self::NAME_SEPARATOR) {
@@ -171,7 +172,7 @@ impl<'p> HardpathParser<'p> {
 
         //todo: check for invalid characters
         if path_name.is_empty() {
-            return syn_err!(*span, E_ENTRY_HEADER);
+            return Err(Error::EntryHeader);
         }
 
         let path_kind = if path_name.ends_with('/') {

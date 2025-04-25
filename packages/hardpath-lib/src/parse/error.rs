@@ -10,8 +10,8 @@ pub enum Error {
     LineIndent(usize),
     #[error("Hardpath schema entry must begin with a leaf `|-- `, branch `|-+ `, or continuation `|   `")]
     EntryKind,
-    #[error("Unable to parse hardpath schema entry as `name :: subline`")]
-    EntryHeader,
+    #[error("Unable to parse hardpath schema entry as `name :: subline`: Line {0}")]
+    EntryHeader(usize),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
