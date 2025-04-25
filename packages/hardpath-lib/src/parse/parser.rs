@@ -1,6 +1,13 @@
 use std::cell::RefCell;
 use crate::*;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ParseState {
+    None,
+    Active,
+    Done
+}
+
 #[derive(Debug)]
 pub(crate) struct ParserNode<'n> {
     pub(crate) id: usize,
@@ -113,33 +120,62 @@ impl<'p> HardpathParser<'p> {
         id
     }
 
+    /// Sanitize input for processing while preserving line numbers and indentation for error reporting.
+    ///
+    /// Throws an error if opening indentation is inconsistent rather than letting that error occur later.
     fn init_lines(&mut self, schema: &'p str) -> Result<()> {
         // determine indent and top trim
-        let mut content_found = false;
+        let mut content_parse = ParseState::None;
+        let mut footer_parse = ParseState::None;
         let mut header_lines_trimmed = 0;
         let mut indent = 0;
-        let mut table_found = false;
-        let lines = schema.lines()
-            .filter_map(|line| {
-                if !content_found {
-                    let trimmed = line.trim();
+        let mut lines = Vec::new();
+        let mut list_lines = Vec::new();
+
+        for (index, line) in schema.lines().enumerate() {
+            let trimmed = line.trim();
+
+            match content_parse {
+                ParseState::None => {
                     if line.is_empty() {
                         header_lines_trimmed += 1;
-                        None
                     } else {
-                        content_found = true;
+                        content_parse = ParseState::Active;
                         indent = line.chars()
                             .take_while(|c| c.is_whitespace())
                             .count();
 
-                        Some(trimmed)
+                        lines.push(trimmed);
                     }
-                } else {
-                    Some(line)
-                }
-            }).collect();
+                },
+                ParseState::Active => {
+                    if trimmed.is_empty() {
+                        content_parse = ParseState::Done;
+                    } else {
+                        let line_indent = line.len() - line.trim_start().len();
+                        if line_indent != indent {
+                            return Err(Error::LineIndent(index));
+                        }
 
-        self.lines = lines;
+                        lines.push(trimmed);
+                    }
+                },
+                ParseState::Done => {
+                    match footer_parse {
+                        ParseState::None => {
+
+                        },
+                        ParseState::Active => {
+
+                        },
+                        ParseState::Done => {
+
+                        }
+                    }
+                }
+            }
+        }
+
         self.indent = indent;
         self.header_lines_trimmed = header_lines_trimmed;
 
