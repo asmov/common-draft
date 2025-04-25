@@ -1,11 +1,11 @@
-Asmov Common Hardpath Parse
+Asmov Common Hardpath Library
 ================================================================================
 [![Latest Version]][crates.io]
 
-[Latest Version]: https://img.shields.io/crates/v/asmov-common-hardpath-parse.svg
-[crates.io]: https://crates.io/crates/asmov-common-hardpath-parse
+[Latest Version]: https://img.shields.io/crates/v/asmov-common-hardpath-lib.svg
+[crates.io]: https://crates.io/crates/asmov-common-hardpath-lib
 
-*Parsing library for Asmov Common Hardpath*
+*Library for Asmov Common Hardpath*
 
 Repository
 --------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ If an issue does not exist, create one and tell us how to reproduce the bug.
 
 License (AGPL3)
 --------------------------------------------------------------------------------
-Asmov Common Hardpath Parse: Parsing library for Asmov Common Hardpath   
+Asmov Common Hardpath Library: Library for Asmov Common Hardpath   
 Copyright (C) 2025 Asmov LLC  
 
 This program is free software: you can redistribute it and/or modify

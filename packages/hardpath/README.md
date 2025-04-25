@@ -5,7 +5,7 @@ Asmov Common Hardpath
 [Latest Version]: https://img.shields.io/crates/v/asmov-common-hardpath.svg
 [crates.io]: https://crates.io/crates/asmov-common-hardpath
 
-*Defines hardcoded filesystem paths using a tree with names and descriptions*
+*Hardcoded filesystem heirarchies with compiler validation of paths*
 
 Repository
 --------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ If an issue does not exist, create one and tell us how to reproduce the bug.
 
 License (AGPL3)
 --------------------------------------------------------------------------------
-Asmov Common Hardpath: Defines hardcoded filesystem paths using a tree with names and descriptions  
+Asmov Common Hardpath: Hardcoded filesystem heirarchies with compiler validation paths.    
 Copyright (C) 2025 Asmov LLC  
 
 This program is free software: you can redistribute it and/or modify

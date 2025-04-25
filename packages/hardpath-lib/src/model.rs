@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fmt::Display, path::PathBuf, str::FromStr};
 
 pub type HardpathTree = HardpathNode;
 pub type SoftpathTree = SoftpathNode;
@@ -84,6 +84,20 @@ impl HardpathNode where Self: 'static {
 
     pub fn is_base(&self) -> bool {
         self.parent_id.is_none()
+    }
+}
+
+impl FromStr for SoftpathNode {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+impl Display for SoftpathNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }
 

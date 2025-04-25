@@ -137,9 +137,10 @@ const COPYWRITER_FS_DESC_OUTLINE: &'static str = r"
 /// - Descriptive Outline: Names and descriptions are provided after filestructure, with a filepath as the key
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
-    use asmov_common_hardpath_parse as parse;
-    use asmov_common_hardpath_model as model;
+    use asmov_common_hardpath_lib as lib;
 
     fn indent(s: String, len: usize) -> String {
         s.split("\n").map(|line| format!("{indent}{line}\n", indent = " ".repeat(len))).collect()
@@ -149,16 +150,16 @@ mod tests {
     /// the original string.
     #[test]
     fn test_string_conversion() {
-        let nondesc: model::SoftpathTree = parse::str_to_softpath_tree(COPYWRITER_FS_NONDESC).unwrap();
-        let nondesc: String = indent(parse::softpath_tree_to_string(&nondesc).unwrap(), COPYWRITER_FS_INDENT);
+        let nondesc: lib::SoftpathTree = lib::SoftpathTree::from_str(COPYWRITER_FS_NONDESC).unwrap();
+        let nondesc: String = indent(nondesc.to_string(), COPYWRITER_FS_INDENT);
         assert_eq!(COPYWRITER_FS_NONDESC, nondesc, "Parsed non-descriptive schema should match original");
 
-        let desc_inline: model::SoftpathTree = parse::str_to_softpath_tree(COPYWRITER_FS_DESC_INLINE).unwrap();
-        let desc_inline: String = indent(parse::softpath_tree_to_string(&desc_inline).unwrap(), COPYWRITER_FS_INDENT);
+        let desc_inline: lib::SoftpathTree = lib::SoftpathTree::from_str(COPYWRITER_FS_DESC_INLINE).unwrap();
+        let desc_inline: String = indent(desc_inline.to_string(), COPYWRITER_FS_INDENT);
         assert_eq!(COPYWRITER_FS_DESC_INLINE, desc_inline, "Parsed descriptive inline schema should match original");
 
-        let desc_outline: model::SoftpathTree = parse::str_to_softpath_tree(COPYWRITER_FS_DESC_OUTLINE).unwrap();
-        let desc_outline: String = indent(parse::softpath_tree_to_string(&desc_outline).unwrap(), COPYWRITER_FS_INDENT);
+        let desc_outline: lib::SoftpathTree = lib::SoftpathTree::from_str(COPYWRITER_FS_DESC_OUTLINE).unwrap();
+        let desc_outline: String = indent(desc_outline.to_string(), COPYWRITER_FS_INDENT);
         assert_eq!(COPYWRITER_FS_DESC_OUTLINE, desc_outline, "Parsed descriptive outline schema should match original");
     }
 }

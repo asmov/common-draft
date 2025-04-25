@@ -1,9 +1,11 @@
 mod error;
 mod model;
 
+use std::str::FromStr;
+
 use quote::quote;
 use proc_macro2::Span;
-use asmov_common_hardpath_parse::{self  as hardpath_parse, *};
+pub(crate) use asmov_common_hardpath_lib::*;
 use syn::spanned::Spanned;
 use crate::model::*;
 
@@ -12,6 +14,8 @@ pub use error::msg::*;
 const IDENT_DOC: &'static str = "doc";
 const COMMENT_BLOCK_START: &'static str = "```hardpath";
 const COMMENT_BLOCK_END: &'static str = "```";
+
+type Linespan = (String, proc_macro2::Span);
 
 pub fn parse_hardpath_macro(item: proc_macro2::TokenStream) -> syn::Result<proc_macro2::TokenStream> {
     let item: HardpathItem = syn::parse2(item)?;
@@ -51,8 +55,8 @@ impl syn::parse::Parse for HardpathItem {
         let struct_item = syn::ItemStruct::parse(input)?;
         let ident_span = struct_item.ident.span();
 
-        let mut doc_lines: Vec<Linespan> = Vec::new();
-        let mut codefence_lines: Vec<Linespan> = Vec::new();
+        let mut codefence_lines: Vec<String> = Vec::new();
+        let mut codefence_spans: Vec<Span> = Vec::new();
         let mut parsing_codefence = ParseState::None;
 
         struct_item.attrs.iter()
@@ -68,20 +72,17 @@ impl syn::parse::Parse for HardpathItem {
                     ParseState::None => {
                         if line.trim().starts_with(COMMENT_BLOCK_START) {
                             parsing_codefence = ParseState::Active;
-                        } else {
-                            doc_lines.push((line, span))
                         }
                     },
                     ParseState::Active => {
                         if line.trim().starts_with(COMMENT_BLOCK_END) {
                             parsing_codefence = ParseState::Complete;
                         } else {
-                            codefence_lines.push((line, span))
+                            codefence_lines.push(line);
+                            codefence_spans.push(span);
                         }
                     },
-                    ParseState::Complete => {
-                        doc_lines.push((line, span))
-                    }
+                    ParseState::Complete => ()
                 }
             });
 
@@ -89,17 +90,10 @@ impl syn::parse::Parse for HardpathItem {
             return syn_err!(ident_span, E_CODEFENCE_NOT_FOUND);
         }
 
-        let doc_lines: Vec<Linespan> = doc_lines.drain(0..2).collect();
+        let codefence = codefence_lines.join("\n");
 
-        let title = doc_lines.get(0)
-            .ok_or_else(|| syn_error!(ident_span, E_TREE_NAME_NOT_FOUND))?
-            .0.to_owned();
-        let subline = doc_lines.get(1)
-            .ok_or_else(|| syn_error!(ident_span, E_TREE_SUBLINE_NOT_FOUND))?
-            .0.to_owned();
-
-        let tree = hardpath_parse::HardpathParser::new(&codefence_lines, ident_span)?
-            .parse(&title, &subline)?;
+        let tree = SoftpathTree::from_str(&codefence)
+            .map_err(|err| todo!())?;
 
         let macro_model = HardpathMacroModel { tree: HardpathMacroModelTree(tree) };
 

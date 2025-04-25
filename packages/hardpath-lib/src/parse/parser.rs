@@ -1,6 +1,4 @@
 use std::cell::RefCell;
-use proc_macro2::Span;
-use asmov_common_hardpath_model::*;
 use crate::*;
 
 #[derive(Debug)]
@@ -39,32 +37,43 @@ impl<'n> Into<SoftpathTree> for ParserNode<'n> {
 }
 
 pub struct HardpathParser<'p> {
-    ident_span: Span,
-    lines: &'p Vec<Linespan>,
-    indent: usize,
+    lines: Vec<&'p str>,
     next_id: RefCell<usize>,
 }
 
 impl<'p> HardpathParser<'p> {
     const NAME_SEPARATOR: &'static str = " :: ";
 
-    pub fn new(lines: &'p Vec<Linespan>, ident_span: Span) -> syn::Result<Self> {
-        // first node is '.' and establishes identation
-        let dot_line = &lines.get(0)
-            .ok_or_else(|| syn_error!(ident_span, E_TREE_ROOT_NOT_FOUND))?
-            .0;
-        let indent = dot_line.chars().take_while(|c| *c == ' ').count();
-
+    pub fn new(schema: &'p str) -> Result<Self> {
         Ok(HardpathParser {
-            ident_span,
-            lines,
-            indent,
+            lines: Self::init_lines(schema)?,
             next_id: RefCell::new(1),
         })
     }
 
-    pub fn parse(self, name: &'p str, subline: &'p str) -> syn::Result<SoftpathTree> {
-        let cursor = Cursor::new(self.indent);
+    pub fn parse(self) -> Result<SoftpathTree> {
+        let cursor = Cursor::new();
+
+        let mut name = None;
+        let mut subline = None;
+
+        let line = cursor.next_line(&self.lines)
+            .ok_or_else(|| Error::InvalidSchema)?;
+
+        if line != "." {
+            name = Some(line);
+
+            let line = cursor.next_line(&self.lines)
+                .ok_or_else(|| Error::InvalidSchema)?;
+
+            if line != "." {
+                subline = Some(line);
+            }
+        }
+
+
+
+
 
         let children = self.parse_direct_children(cursor, 0)?
             .into_iter()
@@ -85,20 +94,35 @@ impl<'p> HardpathParser<'p> {
         Ok(tree.into())
     }
 
-    pub fn generate_id(&self) -> usize {
+    fn generate_id(&self) -> usize {
         let id = *self.next_id.borrow();
         *self.next_id.borrow_mut() += 1;
         id
     }
 
-    fn seek_from(line: &'p Linespan, cursor: &Cursor) -> syn::Result<&'p str> {
-        let (line, span) = line;
+    fn init_lines(schema: &'p str) -> Result<Vec<&'p str>> {
+        // determine indent
+        let mut lines = schema.lines()
+            .map(|line| line.trim_end())
+            .filter(|line| line.is_empty())
+            .peekable();
 
-        if line.len() < cursor.char_index {
-            return syn_err!(*span, E_LINE_INDENT);
-        }
+        let indent = lines.peek()
+            .ok_or_else(|| Error::InvalidSchema)?
+            .chars()
+            .take_while(|c| c.is_whitespace())
+            .count();
 
-        Ok(&line[cursor.char_index..])
+        lines
+            .map(|line| {
+                let line_indent = line.chars().take_while(|c| c.is_whitespace()).count();
+                if line_indent != indent {
+                    Err(Error::LineIndent(line_indent))
+                } else {
+                    Ok(&line[line_indent..])
+                }
+            })
+            .collect::<Result<Vec<_>>>()
     }
 
     fn parse_direct_children(&self, mut cursor: Cursor, parent_id: usize) -> syn::Result<Vec<ParserNode<'p>>> {
@@ -178,7 +202,6 @@ impl<'p> HardpathParser<'p> {
 
 #[derive(Debug, Clone)]
 pub(crate) struct Cursor {
-    indent: usize,
     depth: usize,
     line_index: usize,
     char_index: usize
@@ -187,11 +210,10 @@ pub(crate) struct Cursor {
 impl Cursor {
     const DEPTH_INDENT: usize = 4;
 
-    fn new(indent: usize) -> Self {
+    fn new() -> Self {
         Cursor {
-            indent,
             depth: 0,
-            line_index: 1, // skip '.' line
+            line_index: 0,
             char_index: 0
         }
     }
@@ -204,11 +226,19 @@ impl Cursor {
         lines.get(self.line_index + 1)
     }
 
-    fn next_line<'a> (&mut self, lines: &'a Vec<Linespan>) -> Option<&'a Linespan> {
-        let line_index = self.line_index + 1;
-        let line = lines.get(line_index)?;
-        self.line_index = line_index;
-        self.char_index = self.indent + self.depth * Cursor::DEPTH_INDENT;
+    fn seek_slice(line: &str, char_index: usize) -> Option<&str> {
+        if line.len() <= char_index {
+            None
+        } else {
+            Some(&line[char_index..])
+        }
+    }
+
+    fn next_line<'a> (&mut self, lines: &'a Vec<&str>) -> Option<&'a str> {
+        self.char_index = self.depth * Cursor::DEPTH_INDENT;
+        let line = lines.get(self.line_index)?;
+        let line = Self::seek_slice(line, self.char_index)?;
+        self.line_index += 1;
         Some(line)
     }
 

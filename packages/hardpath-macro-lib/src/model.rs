@@ -1,5 +1,5 @@
-pub use asmov_common_hardpath_model::*;
 use quote::ToTokens;
+use crate::*;
 
 #[derive(Debug, bincode::Encode, bincode::Decode)]
 pub(crate) struct HardpathMacroModelTree (pub(crate) SoftpathTree);

@@ -14,7 +14,7 @@ edition = "2024"
 proc-macro = true
 
 [dependencies]
+asmov-common-hardpath-macro-lib = { path = "../hardpath-macro-lib" }
 proc-macro2 = "1"
 syn = { version = "2", features = ["full"] }
 quote = "1"
-asmov-common-hardpath-macro-lib = { path = "../hardpath-macro-lib" }
