@@ -35,6 +35,24 @@ impl<'n> ParserNode<'n> {
 
         tree
     }
+
+    fn find_path_mut(&mut self, path: &str) -> Option<&mut Self> {
+        if path.is_empty() {
+            return None;
+        }
+
+        let mut parts = path.split('/');
+        let first = parts.next().unwrap();
+
+        for child in &mut self.children {
+            if child.path_name == first {
+                let path = parts.collect::<Vec<_>>().join("/");
+                return child.find_path_mut(&path);
+            }
+        }
+
+        None
+    }
 }
 
 impl<'n> Into<SoftpathTree> for ParserNode<'n> {
@@ -45,6 +63,7 @@ impl<'n> Into<SoftpathTree> for ParserNode<'n> {
 
 pub struct HardpathParser<'p> {
     lines: Vec<&'p str>,
+    footer_lines: Vec<&'p str>,
     indent: usize,
     header_lines_trimmed: usize,
     next_id: RefCell<usize>,
@@ -53,10 +72,12 @@ pub struct HardpathParser<'p> {
 impl<'p> HardpathParser<'p> {
     const ROOT_NODE_ID: usize = 0;
     const ROOT_NODE_PATH_NAME: &'static str = ".";
+    const ROOT_NODE_PATH: &'static str = "./";
 
     pub fn new() -> Result<Self> {
         Ok(HardpathParser {
             lines: Vec::new(),
+            footer_lines: Vec::new(),
             indent: 0,
             header_lines_trimmed: 0,
             next_id: RefCell::new(1),
@@ -64,8 +85,8 @@ impl<'p> HardpathParser<'p> {
     }
 
     pub fn parse(mut self, schema: &'p str) -> Result<SoftpathTree> {
-
         self.init_lines(schema)?;
+
         let mut cursor = Cursor::new();
         let mut name = None;
         let mut subline = None;
@@ -100,7 +121,7 @@ impl<'p> HardpathParser<'p> {
             .map(|child| self.parse_child(child))
             .collect::<Result<Vec<_>>>()?;
 
-        let tree = ParserNode {
+        let mut tree = ParserNode {
             id: Self::ROOT_NODE_ID,
             path_kind: PathKind::Directory,
             cursor: root_node_cursor,
@@ -110,6 +131,31 @@ impl<'p> HardpathParser<'p> {
             parent_id: None,
             children,
         };
+
+        let cursor = Cursor::new();
+        while let Some(footer_line) = cursor.next_line(&self.footer_lines) {
+            let path = footer_line;
+            if !path.starts_with(Self::ROOT_NODE_PATH) {
+                return Err(Error::InvalidFooterPath(cursor.line_num(), path))
+            }
+
+            let name = cursor.next_line_indented(self.footer_lines, self.indent)
+                .ok_or_else(|| Error::ExpectedContent(cursor.line_num()))?;
+
+            let subline = cursor.next_line_indented(self.footer_lines, self.indent);
+
+            let mut node = tree.find_path_mut(path)
+                .ok_or_else(|| Error::FooterPathNotFound(cursor.line_num(), path))?;
+
+            if node.name.is_some() {
+                return Err(Error::DuplicateFooterDefinition(cursor.line_num(), path, "name"))
+            } else if node.subline.is_some() && subline.is_some() {
+                return Err(Error::DuplicateFooterDefinition(cursor.line_num(), path, "subline"))
+            }
+
+            node.name = Some(name);
+            node.subline = subline;
+        }
 
         Ok(tree.into())
     }
@@ -130,7 +176,7 @@ impl<'p> HardpathParser<'p> {
         let mut header_lines_trimmed = 0;
         let mut indent = 0;
         let mut lines = Vec::new();
-        let mut list_lines = Vec::new();
+        let mut footer_lines = Vec::new();
 
         for (index, line) in schema.lines().enumerate() {
             let trimmed = line.trim();
@@ -163,13 +209,24 @@ impl<'p> HardpathParser<'p> {
                 ParseState::Done => {
                     match footer_parse {
                         ParseState::None => {
-
+                            if trimmed.is_empty() {
+                                return Err(Error::ExpectedContent(index))
+                            } else {
+                                footer_parse = ParseState::Active;
+                                footer_lines.push(trimmed);
+                            }
                         },
                         ParseState::Active => {
-
+                            if trimmed.is_empty() {
+                                footer_parse = ParseState::Done;
+                            } else {
+                                footer_lines.push(trimmed);
+                            }
                         },
                         ParseState::Done => {
-
+                            if !trimmed.is_empty() {
+                                return Err(Error::UnexpectedContent(index))
+                            }
                         }
                     }
                 }
