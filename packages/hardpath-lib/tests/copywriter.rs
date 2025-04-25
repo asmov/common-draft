@@ -26,39 +26,111 @@ const COPYWRITER_FS_DESC_INLINE: &'static str = r"
     Asmov Copywriter Filesystem
     Standard filesystem heirarchy for copywriter projects
     .
-    |-- site.toml :: Site Information
+    |-- site.toml
+    |   Site Information
     |   Information about the website
-    |-- content/ :: Content
+    |-- content/
+    |   Content
     |   Website content organized by datamodel
-    |-- pkg/ :: Packages
+    |-- pkg/
+    |   Packages
     |   Third-party bundles of Src files for the website
-    |-+ src/ :: Src
-        | HTML, CSS, JS, multimedia, etc.
-        |-- css/ :: CSS
-        |   Styling and themes for the website
-        |-- docs/ :: Documents
-        |   PDFs, Word documents, etc.
-        |-- downloads/ :: Downloads
-        |   Files for download
-        |-+ hbs/ :: Templates
-        | | Handlebars templates for building the website
-        | |-- layout/ :: Layout Templates
-        | |   Templates for the website's header, footer, etc.
-        | |-- model/ :: Model Templates
-        |     Template pages and snippets for each datamodel
-        |-- images/ :: Images
-        |   Images for the website
-        |-- js/ :: Javascript
-        |   Javascript code for the website
-        |-- music/ :: Music
-        |   Music for the website
-        |-- sounds/ :: Sounds
-        |   Sounds for the website
-        |-- videos/ :: Videos
-        |   Videos for the website
-        |-- wasm/ :: WebAssembly
-            WebAssembly code for the website
+    |-+ src/
+      | Src
+      | HTML, CSS, JS, multimedia, etc.
+      |-- css/
+      |   CSS
+      |   Styling and themes for the website
+      |-- docs/
+      |   Documents
+      |   PDFs, Word documents, etc.
+      |-- downloads/
+      |   Downloads
+      |   Files for download
+      |-+ hbs/
+      | | Templates
+      | | Handlebars templates for building the website
+      | |-- layout/
+      | |   Layout Templates
+      | |   Templates for the website's header, footer, etc.
+      | |-- model/
+      | |   Model Templates
+      |     Template pages and snippets for each datamodel
+      |-- images/
+      |   Images
+      |   Images for the website
+      |-- js/
+      |   Javascript
+      |   Javascript code for the website
+      |-- music/
+      |   Music
+      |   Music for the website
+      |-- sounds/
+      |   Sounds
+      |   Sounds for the website
+      |-- videos/
+      |   Videos
+      |   Videos for the website
+      |-- wasm/
+          WebAssembly
+          WebAssembly code for the website
 ";
+
+/// ```hardpath
+/// Asmov Copywriter Filesystem
+/// Standard filesystem heirarchy for copywriter projects
+/// .
+/// |-- site.toml
+/// |   Site Information
+/// |   Information about the website
+/// |-- content/
+/// |   Content
+/// |   Website content organized by datamodel
+/// |-- pkg/
+/// |   Packages
+/// |   Third-party bundles of Src files for the website
+/// |-+ src/
+///   | Src
+///   | HTML, CSS, JS, multimedia, etc.
+///   |-- css/
+///   |   CSS
+///   |   Styling and themes for the website
+///   |-- docs/
+///   |   Documents
+///   |   PDFs, Word documents, etc.
+///   |-- downloads/
+///   |   Downloads
+///   |   Files for download
+///   |-+ hbs/
+///   | | Templates
+///   | | Handlebars templates for building the website
+///   | |-- layout/
+///   | |   Layout Templates
+///   | |   Templates for the website's header, footer, etc.
+///   | |-- model/
+///   | |   Model Templates
+///   |     Template pages and snippets for each datamodel
+///   |-- images/
+///   |   Images
+///   |   Images for the website
+///   |-- js/
+///   |   Javascript
+///   |   Javascript code for the website
+///   |-- music/
+///   |   Music
+///   |   Music for the website
+///   |-- sounds/
+///   |   Sounds
+///   |   Sounds for the website
+///   |-- videos/
+///   |   Videos
+///   |   Videos for the website
+///   |-- wasm/
+///       WebAssembly
+///       WebAssembly code for the website
+/// ```
+const COPYWRITER_FS_DESC_INLINE: &'static str = "";
+// todo: Move this somewhere
 
 const COPYWRITER_FS_DESC_OUTLINE: &'static str = r"
     Asmov Copywriter Filesystem

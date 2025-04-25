@@ -38,22 +38,28 @@ impl<'n> Into<SoftpathTree> for ParserNode<'n> {
 
 pub struct HardpathParser<'p> {
     lines: Vec<&'p str>,
+    indent: usize,
+    header_lines_trimmed: usize,
     next_id: RefCell<usize>,
 }
 
 impl<'p> HardpathParser<'p> {
-    const NAME_SEPARATOR: &'static str = " :: ";
+    const ROOT_NODE_ID: usize = 0;
+    const ROOT_NODE_PATH_NAME: &'static str = ".";
 
-    pub fn new(schema: &'p str) -> Result<Self> {
+    pub fn new() -> Result<Self> {
         Ok(HardpathParser {
-            lines: Self::init_lines(schema)?,
+            lines: Vec::new(),
+            indent: 0,
+            header_lines_trimmed: 0,
             next_id: RefCell::new(1),
         })
     }
 
-    pub fn parse(self) -> Result<SoftpathTree> {
-        let cursor = Cursor::new();
+    pub fn parse(mut self, schema: &'p str) -> Result<SoftpathTree> {
 
+        self.init_lines(schema)?;
+        let mut cursor = Cursor::new();
         let mut name = None;
         let mut subline = None;
 
@@ -80,18 +86,20 @@ impl<'p> HardpathParser<'p> {
             }
         }
 
-        let children = self.parse_direct_children(cursor, 0)?
+        let root_node_cursor = cursor.clone();
+
+        let children = self.parse_direct_children(cursor, Self::ROOT_NODE_ID)?
             .into_iter()
             .map(|child| self.parse_child(child))
             .collect::<Result<Vec<_>>>()?;
 
         let tree = ParserNode {
-            id: 0,
+            id: Self::ROOT_NODE_ID,
             path_kind: PathKind::Directory,
-            cursor: Cursor::new(),
-            path_name: ".",
-            name: name,
-            subline: subline,
+            cursor: root_node_cursor,
+            path_name: Self::ROOT_NODE_PATH_NAME,
+            name,
+            subline,
             parent_id: None,
             children,
         };
@@ -105,29 +113,37 @@ impl<'p> HardpathParser<'p> {
         id
     }
 
-    fn init_lines(schema: &'p str) -> Result<Vec<&'p str>> {
-        // determine indent
-        let mut lines = schema.lines()
-            .map(|line| line.trim_end())
-            .filter(|line| line.is_empty())
-            .peekable();
+    fn init_lines(&mut self, schema: &'p str) -> Result<()> {
+        // determine indent and top trim
+        let mut content_found = false;
+        let mut header_lines_trimmed = 0;
+        let mut indent = 0;
+        let mut table_found = false;
+        let lines = schema.lines()
+            .filter_map(|line| {
+                if !content_found {
+                    let trimmed = line.trim();
+                    if line.is_empty() {
+                        header_lines_trimmed += 1;
+                        None
+                    } else {
+                        content_found = true;
+                        indent = line.chars()
+                            .take_while(|c| c.is_whitespace())
+                            .count();
 
-        let indent = lines.peek()
-            .ok_or_else(|| Error::InvalidSchema)?
-            .chars()
-            .take_while(|c| c.is_whitespace())
-            .count();
-
-        lines
-            .map(|line| {
-                let line_indent = line.chars().take_while(|c| c.is_whitespace()).count();
-                if line_indent != indent {
-                    Err(Error::LineIndent(line_indent))
+                        Some(trimmed)
+                    }
                 } else {
-                    Ok(&line[line_indent..])
+                    Some(line)
                 }
-            })
-            .collect::<Result<Vec<_>>>()
+            }).collect();
+
+        self.lines = lines;
+        self.indent = indent;
+        self.header_lines_trimmed = header_lines_trimmed;
+
+        Ok(())
     }
 
     fn parse_direct_children(&self, mut cursor: Cursor, parent_id: usize) -> Result<Vec<ParserNode<'p>>> {
