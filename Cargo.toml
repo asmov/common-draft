@@ -1,4 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
+    "packages/traitenum",
+    "packages/traitenum-cargo",
+    "packages/traitenum-macro",
+    "packages/traitenum-parse",
+    "packages-test/traitenum-test-exporter",
+    "packages-test/traitenum-test-exporter-derive",
+    "packages-test/traitenum-test-importer",
 ]
